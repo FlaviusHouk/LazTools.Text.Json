@@ -1,4 +1,4 @@
-namespace LazTools.Json
+namespace LazTools.Text.Json
 {
 	internal enum JsonWriterState
 	{

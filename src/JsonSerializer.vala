@@ -1,6 +1,6 @@
 using GLib;
 
-namespace LazTools.Json
+namespace LazTools.Text.Json
 {
 	public class JsonSerializer
 	{
@@ -61,10 +61,14 @@ namespace LazTools.Json
 			{
 				WriteUnknown<int>(value.get_int(), writer, ctx);
 			}
-			/*else if (valueType.is_a(Type.DOUBLE))
+			else if (valueType.is_a(Type.DOUBLE))
 			{
-				WriteUnknown<double>(value.get_double(), writer, ctx);
-			}*/
+				WriteUnknown<double?>(value.get_double(), writer, ctx);
+			}
+			else if (valueType.is_a(Type.FLOAT))
+			{
+				WriteUnknown<float?>(value.get_float(), writer, ctx);
+			}
 			else if (valueType.is_a(Type.BOOLEAN))
 			{
 				WriteUnknown<bool>(value.get_boolean(), writer, ctx);
@@ -112,6 +116,15 @@ namespace LazTools.Json
 			{
 				bool b = (bool)obj;
 				writer.WriteBoolean(b);
+			}
+			else if (type.is_a(Type.DOUBLE))
+			{
+				double? d = (double?)obj;
+
+				if(d == null)
+					writer.WriteNull();
+				else
+					writer.WriteDouble(d);
 			}
 		}
 	}

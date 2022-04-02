@@ -1,5 +1,5 @@
 using GLib;
-using LazTools.Json;
+using LazTools.Text.Json;
 
 namespace LazTools
 {
@@ -19,7 +19,7 @@ namespace LazTools
 	{
 		public TestClass Position { get; set; }
 		public int Id { get; set; }
-		public Point? LogicalPosition { get; set; }
+		public Point LogicalPosition { get; set; }
 	}
 
 	internal class PointJsonSerializer : JsonTypeSerializer<Point?>
@@ -31,6 +31,12 @@ namespace LazTools
 
 		public override void Serialize(Point? obj, JsonWriter writer)
 		{
+			if(obj == null)
+			{
+				writer.WriteNull();
+				return;
+			}
+
 			writer.StartObject();
 			writer.WriteProperty("X");
 			writer.WriteInt32(obj.X);
@@ -49,7 +55,7 @@ namespace LazTools
 			{
 				int val = (int)obj;
 				stdout.printf("%s - %d\n", t.name(), val);
-			}	
+			}
 		}
 
 		public static void main(string[] args)

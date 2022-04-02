@@ -1,7 +1,7 @@
 using Gee;
 using GLib;
 
-namespace LazTools.Json
+namespace LazTools.Text.Json
 {
 	public class JsonSerializationContext : Object
 	{

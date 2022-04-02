@@ -1,6 +1,6 @@
 using GLib;
 
-namespace LazTools.Json
+namespace LazTools.Text.Json
 {
 	public interface IJsonTypeSerializer : Object
 	{

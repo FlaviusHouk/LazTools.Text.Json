@@ -1,7 +1,7 @@
 using Gee;
 using GLib;
 
-namespace LazTools.Json
+namespace LazTools.Text.Json
 {
 	internal struct JsonWriterStateTransition
 	{
@@ -133,6 +133,26 @@ namespace LazTools.Json
 			_stream.printf(out bytesWritten, null, format, propName);
 		}
 
+		public void WriteInt8(int8 number) throws Error
+		{
+			GoToState(JsonWriterState.Primitive);
+
+			size_t bytesWritten;
+			string format = "%d";
+
+			_stream.printf(out bytesWritten, null, format, number);
+		}
+
+		public void WriteInt16(int16 number) throws Error
+		{
+			GoToState(JsonWriterState.Primitive);
+
+			size_t bytesWritten;
+			string format = "%d";
+
+			_stream.printf(out bytesWritten, null, format, number);
+		}
+
 		public void WriteInt32(int32 number) throws Error
 		{
 			GoToState(JsonWriterState.Primitive);
@@ -141,6 +161,41 @@ namespace LazTools.Json
 			string format = "%d";
 
 			_stream.printf(out bytesWritten, null, format, number);
+		}
+
+		public void WriteInt64(int64 number) throws Error
+		{
+			GoToState(JsonWriterState.Primitive);
+
+			size_t bytesWritten;
+			string format = "%d";
+
+			_stream.printf(out bytesWritten, null, format, number);
+		}
+
+		public void WriteFloat(float number) throws Error
+		{
+			GoToState(JsonWriterState.Primitive);
+
+			size_t bytesWritten;
+			string format = "%f";
+
+			_stream.printf(out bytesWritten, null, format, number);
+		}
+
+		public void WriteDouble(double number) throws Error
+		{
+			GoToState(JsonWriterState.Primitive);
+
+			size_t bytesWritten;
+			string format = "%f";
+
+			_stream.printf(out bytesWritten, null, format, number);
+		}
+
+		public void WriteNull() throws Error
+		{
+			WriteString("null");
 		}
 
 		public void WriteBoolean(bool value) throws Error
