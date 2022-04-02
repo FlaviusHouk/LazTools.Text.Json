@@ -24,12 +24,12 @@ namespace LazTools
 
 	internal class PointJsonSerializer : JsonTypeSerializer<Point?>
 	{
-		public override void SerializeValue(Value value, Type valueType, JsonWriter writer)
+		public override void SerializeValue(Value value, Type valueType, JsonWriter writer, JsonSerializationContext ctx)
 		{
-			Serialize((Point?)value.get_boxed(), writer);
+			Serialize((Point?)value.get_boxed(), writer, ctx);
 		}
 
-		public override void Serialize(Point? obj, JsonWriter writer)
+		public override void Serialize(Point? obj, JsonWriter writer, JsonSerializationContext ctx)
 		{
 			if(obj == null)
 			{

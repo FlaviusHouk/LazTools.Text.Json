@@ -4,6 +4,9 @@ namespace LazTools.Text.Json
 {
 	public class JsonSerializer
 	{
+		private static Lazy<JsonSerializationContext> _defaultContextCreator =
+			new Lazy<JsonSerializationContext>(CreateDefaultContext);
+
 		private JsonSerializer()
 		{}
 
@@ -27,7 +30,79 @@ namespace LazTools.Text.Json
 							JsonSerializationContext? ctx = null) throws JsonError, Error
 		{
 			JsonWriter writer = new JsonWriter(stream);
-			WriteUnknown<T>(obj, writer, ctx);
+			SerializeToWriter<T>(obj, writer, ctx);
+		}
+
+		public static void SerializeToWriter<T>(T obj,
+						        JsonWriter writer,
+						        JsonSerializationContext? ctx = null) throws JsonError, Error
+		{
+			Type type = typeof(T);
+			
+			if(type.is_object())
+			{
+				Object object = (Object)obj;
+				SerializeObject(object, type, writer, ctx);
+			}
+			else if (type.is_a (Type.INT))
+			{
+				int i = (int)obj;
+				writer.WriteInt32(i);
+			}
+			else if (type.is_a (Type.BOOLEAN))
+			{
+				bool b = (bool)obj;
+				writer.WriteBoolean(b);
+			}
+			else if (type.is_a(Type.DOUBLE))
+			{
+				double? d = (double?)obj;
+
+				if(d == null)
+					writer.WriteNull();
+				else
+					writer.WriteDouble(d);
+			}
+			else if(type.is_a(Type.FLOAT))
+			{
+				float? f = (float?)obj;
+				
+				if(f == null)
+					writer.WriteNull();
+				else
+					writer.WriteFloat(f);
+			}
+			else if(type.is_a(Type.STRING))
+			{
+				string? s = (string?)obj;
+
+				if(s == null)
+					writer.WriteNull();
+				else
+					writer.WriteString(s);
+			}
+			else if(type.is_a(Type.BOXED))
+			{
+				if(ctx == null)
+				{
+					throw new JsonError.NO_SERIALIZER_FOUND(@"Cannot serialize type (valueType.name()). No context.");
+				}
+
+				IJsonTypeSerializer serializer = 
+					ctx.LookupSerializerForType(type);
+
+				JsonTypeSerializer<T> typeSerializer =
+					(JsonTypeSerializer<T>)serializer;
+
+				typeSerializer.Serialize(obj, writer, ctx);
+			}
+		}
+
+		private static JsonSerializationContext CreateDefaultContext()
+		{
+			JsonSerializationContext ctx = new JsonSerializationContext();
+
+			return ctx;
 		}
 
 		private static void SerializeObject(Object obj,
@@ -59,23 +134,23 @@ namespace LazTools.Text.Json
 		{
 			if(valueType.is_a(Type.INT))
 			{
-				WriteUnknown<int>(value.get_int(), writer, ctx);
+				SerializeToWriter<int>(value.get_int(), writer, ctx);
 			}
 			else if (valueType.is_a(Type.DOUBLE))
 			{
-				WriteUnknown<double?>(value.get_double(), writer, ctx);
+				SerializeToWriter<double?>(value.get_double(), writer, ctx);
 			}
 			else if (valueType.is_a(Type.FLOAT))
 			{
-				WriteUnknown<float?>(value.get_float(), writer, ctx);
+				SerializeToWriter<float?>(value.get_float(), writer, ctx);
 			}
 			else if (valueType.is_a(Type.BOOLEAN))
 			{
-				WriteUnknown<bool>(value.get_boolean(), writer, ctx);
+				SerializeToWriter<bool>(value.get_boolean(), writer, ctx);
 			}
 			else if(valueType.is_a(Type.STRING))
 			{
-				WriteUnknown<string>(value.get_string(), writer, ctx);
+				SerializeToWriter<string>(value.get_string(), writer, ctx);
 			}
 			else if(valueType.is_a(Type.OBJECT))
 			{
@@ -91,41 +166,9 @@ namespace LazTools.Text.Json
 				IJsonTypeSerializer serializer = 
 					ctx.LookupSerializerForType(valueType);
 
-				serializer.SerializeValue(value, valueType, writer);
+				serializer.SerializeValue(value, valueType, writer, ctx);
 			}
 			
-		}
-
-		private static void WriteUnknown<T>(T obj,
-						    JsonWriter writer,
-						    JsonSerializationContext? ctx = null) throws JsonError, Error
-		{
-			Type type = typeof(T);
-			
-			if(type.is_object())
-			{
-				Object object = (Object)obj;
-				SerializeObject(object, type, writer, ctx);
-			}
-			else if (type.is_a (Type.INT))
-			{
-				int i = (int)obj;
-				writer.WriteInt32(i);
-			}
-			else if (type.is_a (Type.BOOLEAN))
-			{
-				bool b = (bool)obj;
-				writer.WriteBoolean(b);
-			}
-			else if (type.is_a(Type.DOUBLE))
-			{
-				double? d = (double?)obj;
-
-				if(d == null)
-					writer.WriteNull();
-				else
-					writer.WriteDouble(d);
-			}
-		}
+		}	
 	}
 }
