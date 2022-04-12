@@ -98,6 +98,145 @@ namespace LazTools.Text.Json
 			}
 		}
 
+		public static T? DeserializeFromString<T>(string json)
+		{
+			MemoryInputStream input =
+				new MemoryInputStream.from_data(json.data);
+
+			T obj = DeserializeFromStream<T>(input);
+
+			input.close();
+
+			return obj;
+		}
+
+		public static T? DeserializeFromStream<T>(InputStream stream)
+		{
+			JsonReader reader = new JsonReader(stream);
+			return DeserializeFromReader<T>(reader);
+		}
+
+		public static T? DeserializeFromReader<T>(JsonReader reader)
+		{
+			Type t = typeof(T);
+			Value val = GetValue(reader, t);
+			if(t == Type.INT)
+			{
+				return (T?)val.get_int();
+			}
+			else if(t.is_a(Type.OBJECT))
+			{
+				return (T?)val.get_object();
+			}
+			else
+			{
+				throw new JsonError.INVALID_JSON("Invalid type");
+			}
+		}
+
+		public static Value DeserializePrimitive(JsonReader reader, Type t)
+		{	
+			Value v = Value(t);
+
+			if(!reader.Proceed())
+				return v;
+
+			if(t == Type.INT)
+			{
+				v.set_int(reader.ReadInt32());
+			}
+			else if(t == Type.STRING)
+			{
+				v.set_string(reader.ReadString());
+			}
+			else if(t == Type.BOOLEAN)
+			{
+				v.set_boolean(reader.ReadBoolean());
+			}
+			else if(t == Type.FLOAT)
+			{
+				v.set_float(reader.ReadFloat());
+			}
+			else if(t == Type.DOUBLE)
+			{
+				v.set_double(reader.ReadDouble());
+			}
+			else
+			{
+				throw new JsonError.INVALID_JSON("Unexpected type.");
+			}
+
+			return v;
+		}
+
+		public static Object DeserializeObject(JsonReader reader, Type t)
+		{
+			if(!reader.Proceed() || reader.Token != JsonTokenType.ObjectStart)
+				throw new JsonError.INVALID_JSON("Parsing error");
+
+			Object obj = Object.new(t);
+			ObjectClass objClass = (ObjectClass)t.class_ref();
+	
+			while(reader.Proceed() && reader.Token != JsonTokenType.ObjectEnd)
+			{
+				string propName = reader.ReadPropertyName();
+
+				ParamSpec? prop = objClass.find_property(propName);
+				if(prop == null)
+					throw new JsonError.INVALID_JSON("Cannot find property of the object");
+				
+				Value propVal = GetValue(reader, prop.value_type);
+
+				obj.set_property(propName, propVal);
+			}
+
+			return obj;
+		}
+
+		public static void* DeserializeStruct(JsonReader reader, Type t)
+		{
+			TypeQuery query;
+			t.query(out query);
+
+			void* mem = malloc(query.instance_size);
+			//Add context with deseializers
+			//deserializer.deserialize(mem);
+
+			return mem;
+		}
+
+		private static Value GetValue(JsonReader reader, Type t)
+		{
+			if(t.is_fundamental())
+			{	
+				if(t.is_classed())
+				{
+				}
+				else
+				{
+					//Probably only primitive will be here	
+					return DeserializePrimitive(reader, t);
+				}
+			}
+			else if(t.is_a(Type.BOXED))
+			{
+				//Maybe structs will be here
+			}
+			else if(t.is_object())
+			{
+				Value v = Value(t);
+				Object obj = DeserializeObject(reader, t);
+				v.set_object(obj);
+				return v;
+			}
+			else
+			{
+				//Maybe enums will be here and something else.
+			}
+
+			throw new JsonError.INVALID_JSON("Not impletented.");
+		}
+
 		private static JsonSerializationContext CreateDefaultContext()
 		{
 			JsonSerializationContext ctx = new JsonSerializationContext();

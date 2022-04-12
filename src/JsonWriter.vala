@@ -9,7 +9,7 @@ namespace LazTools.Text.Json
 		public JsonWriterState Destination;
 	}
 
-	public class JsonWriter
+	public class JsonWriter : Object
 	{
 		private static JsonWriterStateTransition[] _transitionsWithCommas = 
 			new JsonWriterStateTransition[]
