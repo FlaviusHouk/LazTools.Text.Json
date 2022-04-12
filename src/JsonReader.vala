@@ -135,7 +135,7 @@ namespace LazTools.Text.Json
 
 			_currentLine = _input.read_line();
 
-			if(_currentLine == null &&! !!force)
+			if(_currentLine == null && !force)
 			{
 				if(state.State != JsonReaderStateEnum.DocumentStart)
 					throw new JsonError.INVALID_JSON("Unexpected end.");
