@@ -83,8 +83,10 @@ namespace LazTools
 			//type.query(out q);
 			//stdout.printf("%s\n", q.type_name);
 			
-			string json = "{\"X\":-1,\"Y\":10.34,\"TBool\":true,\"TString\":\"SomeValue\",\"TBio\":{\"Name\":\"Taras\",\"LastName\":\"Shevchenko\"}}";
-			TestClass obj = JsonSerializer.DeserializeFromString<TestClass>(json);
+			//string json = "{\"X\":-1,\"Y\":10.34,\"TBool\":true,\"TString\":\"SomeValue\",\"TBio\":{\"Name\":\"Taras\",\"LastName\":\"Shevchenko\"}}";
+			File jsonFile = File.new_for_path("sample.json");
+			FileInputStream fileStream = jsonFile.read();
+			TestClass obj = JsonSerializer.DeserializeFromStream<TestClass>(fileStream);
 			print("%d - %f - %s - %s - %s - %s\n", obj.X, obj.Y, obj.TBool.to_string(), obj.TString, obj.TBio.Name, obj.TBio.LastName);
 
 	/*	Type type = typeof (Point);
