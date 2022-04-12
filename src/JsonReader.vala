@@ -126,16 +126,16 @@ namespace LazTools.Text.Json
 			return double.parse(number);
 		}
 
-		private void FillBuffer()
+		private void FillBuffer(bool force = false)
 		{
 			JsonReaderState state = GetCurrentState();
 
-			if(_currentLine != null && _currentLine.length > _position || state.State == JsonReaderStateEnum.DocumentStart && state.InternalState == -1)
+			if(!force && ((_currentLine != null && _currentLine.length > _position) || state.State == JsonReaderStateEnum.DocumentStart && state.InternalState == -1))
 				return;
 
 			_currentLine = _input.read_line();
 
-			if(_currentLine == null)
+			if(_currentLine == null && !force)
 			{
 				if(state.State != JsonReaderStateEnum.DocumentStart)
 					throw new JsonError.INVALID_JSON("Unexpected end.");
@@ -169,6 +169,26 @@ namespace LazTools.Text.Json
 			return _stateStack.peek_tail();
 		}
 
+		private bool GoNext(int advance = 1)
+		{
+			int newPos = _position + advance;
+			if(newPos >= _currentLine.length)
+				return false;
+
+			_position = newPos;
+			return true;
+		}
+
+		private bool IncreaseBuffer(int sizeToAdd = 1)
+		{
+			int newSize = _bufferLength + sizeToAdd;
+			if(newSize >= _currentLine.length)
+				return false;
+
+			_bufferLength = newSize;
+			return true;
+		}
+
 		private void EnterValue()
 		{
 			unichar c = _currentLine.get_char(_position + _bufferLength);
@@ -183,7 +203,9 @@ namespace LazTools.Text.Json
 					};
 
 					_stateStack.offer_tail(arrayState);
-					_position++;
+
+					if(!GoNext())
+						FillBuffer(true);
 
 					break;
 				case '{':
@@ -195,7 +217,9 @@ namespace LazTools.Text.Json
 					};
 
 					_stateStack.offer_tail(objectState);
-					_position++;
+					if(!GoNext())
+						FillBuffer(true);
+
 					break;
 				default:
 					if(c == 't' || c == 'f' || c == 'n')
@@ -238,7 +262,8 @@ namespace LazTools.Text.Json
 					}
 					else if(c.isspace())
 					{
-						_position++;
+						if(!GoNext())
+							FillBuffer(true);
 					}
 					else
 					{
@@ -379,30 +404,36 @@ namespace LazTools.Text.Json
 			unichar c = _currentLine.get_char(_position + _bufferLength);
 			if(c == 't')
 			{
-				_bufferLength = 4;
-				string trueString = _currentLine.substring(_position, _bufferLength);
+				if(!IncreaseBuffer(4))
+					throw new JsonError.INVALID_JSON("Unexpected end of line");
+
+				string literalString = _currentLine.substring(_position, _bufferLength);
 				
-				if(trueString != "true")
+				if(literalString != "true")
 					throw new JsonError.INVALID_JSON("Invalid literal");
 
 				currentState.CurrentToken = JsonTokenType.Boolean;
 			}
 			else if(c == 'n')
 			{
-				_bufferLength = 4;
-				string trueString = _currentLine.substring(_position, _bufferLength);
+				if(!IncreaseBuffer(4))
+					throw new JsonError.INVALID_JSON("Unexpected end of line");
+
+				string literalString = _currentLine.substring(_position, _bufferLength);
 				
-				if(trueString != "null")
+				if(literalString != "null")
 					throw new JsonError.INVALID_JSON("Invalid literal");
 
 				currentState.CurrentToken = JsonTokenType.Null;
 			}
 			else if(c == 'f')
 			{
-				_bufferLength = 5;
-				string trueString = _currentLine.substring(_position, _bufferLength);
+				if(!IncreaseBuffer(5))
+					throw new JsonError.INVALID_JSON("Unexpected end of line");
+
+				string literalString = _currentLine.substring(_position, _bufferLength);
 				
-				if(trueString != "false")
+				if(literalString != "false")
 					throw new JsonError.INVALID_JSON("Invalid literal");
 
 				currentState.CurrentToken = JsonTokenType.Boolean;
@@ -435,7 +466,9 @@ namespace LazTools.Text.Json
 				if(c == ',')
 					throw new JsonError.INVALID_JSON("Expected value");
 
-				_position++;
+				if(!GoNext())
+						FillBuffer(true);
+
 				currentState.InternalState = -1;
 			}
 			else if(currentState.InternalState == LaterValue)
@@ -443,7 +476,9 @@ namespace LazTools.Text.Json
 				if(c != ',')
 					throw new JsonError.INVALID_JSON("Missing comma");
 
-				_position++;
+				if(!GoNext())
+					throw new JsonError.INVALID_JSON("Unexpected end of file.");
+
 				EnterValue();
 			}
 			else
@@ -479,13 +514,23 @@ namespace LazTools.Text.Json
 					if(c == '\"')
 					{
 						currentState.InternalState = OpenProperty;
-						_position++;
+						
+						if(!GoNext())
+							throw new JsonError.INVALID_JSON("Unexpected end of line");
 					}
 					else if(c == '}')
 					{
 						currentState.InternalState = -1;
-						_position++;
+
+						if(!GoNext())
+							FillBuffer(true);
+
 						currentState.CurrentToken = JsonTokenType.ObjectEnd;
+					}
+					else if(c.isspace())
+					{
+						if(!GoNext())
+							FillBuffer(true);
 					}
 					else
 					{
@@ -496,7 +541,9 @@ namespace LazTools.Text.Json
 				{
 					if(c.isalpha())
 					{
-						_bufferLength++;
+						if(!IncreaseBuffer())
+							throw new JsonError.INVALID_JSON("Unexpected end of line");
+
 						currentState.InternalState = Property;
 					}
 					else
@@ -508,11 +555,13 @@ namespace LazTools.Text.Json
 				{
 					if(c.isalnum())
 					{
-						_bufferLength++;
+						if(!IncreaseBuffer())
+							throw new JsonError.INVALID_JSON("Unexpected end of line");
 					}
 					else if(c == '\"')
 					{
-						_bufferLength++;
+						IncreaseBuffer();
+
 						currentState.CurrentToken = JsonTokenType.Property;
 						currentState.InternalState = CloseProperty;
 						return;
@@ -526,11 +575,14 @@ namespace LazTools.Text.Json
 				{
 					if(c.isspace())
 					{
-						_position++;
+						if(!GoNext())
+							FillBuffer(true);
 					}
 					else if(c == ':')
 					{
-						_position++;
+						if(!GoNext())
+							FillBuffer(true);
+
 						currentState.InternalState = ValueSeparator;
 					}
 					else
@@ -542,7 +594,8 @@ namespace LazTools.Text.Json
 				{
 					if(c.isspace())
 					{
-						_position++;
+						if(!GoNext())
+							FillBuffer(true);
 					}
 					else
 					{
@@ -557,12 +610,21 @@ namespace LazTools.Text.Json
 					{
 						currentState.InternalState = -1;
 						currentState.CurrentToken = JsonTokenType.ObjectEnd;
-						_position++;
+
+						if(!GoNext())
+							FillBuffer(true);
 					}
 					else if(c == ',')
 					{
 						currentState.InternalState = 1;
-						_position++;
+						
+						if(!GoNext())
+							FillBuffer(true);
+					}
+					else if(c.isspace())
+					{
+						if(!GoNext())
+							FillBuffer(true);
 					}
 					else
 					{
