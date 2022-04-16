@@ -8,6 +8,8 @@ namespace LazTools.Text.Json
 		private Gee.List<IJsonTypeSerializer> _serializers;
 		private Gee.List<IJsonTypeDeserializer> _deserializers;
 
+		public bool HandleEnumAsString { get; set; }
+
 		public JsonContext()
 		{
 			_serializers = new ArrayList<IJsonTypeSerializer>();

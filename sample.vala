@@ -9,9 +9,19 @@ namespace LazTools
 		public int Y;
 	}
 
+	public enum PartOfTheCountryEnum
+	{
+		Center,
+		South,
+		West,
+		East,
+		North
+	}
+
 	public class Location : Object
 	{
 		public string Name { get; set; }
+		public PartOfTheCountryEnum Part { get; set; }
 		public Point? Coords { get; set; }
 	}
 
@@ -74,7 +84,7 @@ namespace LazTools
 		}
 	}*/
 
-	internal class PointClassDeserializer : Object, IJsonTypeDeserializer, IPartialTypeDeserializer
+	/*internal class PointClassDeserializer : Object, IJsonTypeDeserializer, IPartialTypeDeserializer
 	{
 		public bool CanHandleType(Type t)
 		{
@@ -106,16 +116,16 @@ namespace LazTools
 			else if(propertyName == "Y")
 				p.Y = value.get_int();
 		}
-	}
+	}*/
 
-	/*internal class PointJsonSerializer : JsonTypeSerializer<Point?>
+	internal class PointJsonSerializer : JsonTypeSerializer<Point?>
 	{
-		public override void SerializeValue(Value value, Type valueType, JsonWriter writer, JsonSerializationContext ctx)
+		public override void SerializeValue(Value value, Type valueType, JsonWriter writer, JsonContext ctx)
 		{
-			Serialize((Point?)value.get_boxed(), writer, ctx);
+			Serialize((Point?)value.peek_pointer(), writer, ctx);
 		}
 
-		public override void Serialize(Point? obj, JsonWriter writer, JsonSerializationContext ctx)
+		public override void Serialize(Point? obj, JsonWriter writer, JsonContext ctx)
 		{
 			if(obj == null)
 			{
@@ -130,7 +140,7 @@ namespace LazTools
 			writer.WriteInt32(obj.Y);
 			writer.EndObject();
 		}
-	}*/
+	}
 
 	public class Sample : Object
 	{
@@ -172,9 +182,7 @@ namespace LazTools
 	print (" is-flags: %s\n", type.is_object ().to_string ());
 
 
-
-			//string json = "{\"X\":-1,\"Y\":10.34,\"TBool\":true,\"TString\":\"SomeValue\",\"TBio\":{\"Name\":\"Taras\",\"LastName\":\"Shevchenko\"}}";
-			File jsonFile = File.new_for_path("sample2.json");
+			/*File jsonFile = File.new_for_path("sample2.json");
 			FileInputStream fileStream = jsonFile.read();
 
 			JsonContext ctx = new JsonContext();
@@ -185,29 +193,24 @@ namespace LazTools
 			Location obj = (Location)val.get_object();
 			print("%s: [%d;%d]\n", obj.Name, obj.Coords.X, obj.Coords.Y);
 
-			fileStream.close();
+			fileStream.close();*/
 
-			/*TestClass2 t2 = new TestClass2();
-			Point p = Point()
-			{
-				X = 125,
-				Y = 250
-			};
+			Location loc = new Location();
+			loc.Name = "Mykolaiv";
+			loc.Part = PartOfTheCountryEnum.South;
+			loc.Coords = new Point();
+			loc.Coords.X = -4;
+			loc.Coords.Y = -30;
 
-			TestClass t = new TestClass();
-			t.X = 1;
-			t.Y = 2;
+			JsonContext ctx = new JsonContext();
+			ctx.HandleEnumAsString = true;
+			PointJsonSerializer s1 = new PointJsonSerializer();
+			EnumSerializer s2 = new EnumSerializer();
+			ctx.RegisterSerializer(s1);
+			ctx.RegisterSerializer(s2);
 
-			t2.Id = 1;
-			t2.Position = t;
-			t2.LogicalPosition = p;*/
-
-			/*JsonSerializationContext ctx = new JsonSerializationContext();
-			PointClassJsonDeserializer ds1 = new PointClassJsonDeserializer();
-			ctx.RegisterDeserializer(ds1);
-
-			string json = JsonSerializer.SerializeToString<TestClass2>(t2, ctx);
-			stdout.printf("%s\n", json);*/
+			string json = JsonSerializer.SerializeToString<Location>(loc, ctx);
+			stdout.printf("%s\n", json);
 		}
 	}
 }

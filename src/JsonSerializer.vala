@@ -271,13 +271,13 @@ namespace LazTools.Text.Json
 		{
 			JsonContext ctx = new JsonContext();
 
+			EnumSerializer enumSerializer = new EnumSerializer();
+			ctx.RegisterSerializer(enumSerializer);
+
 			return ctx;
 		}
 
-		private static void SerializeObject(Object obj,
-						    Type type,
-						    JsonWriter writer,
-						    JsonContext? ctx = null) throws JsonError, Error
+		private static void SerializeObject(Object obj, Type type, JsonWriter writer, JsonContext? ctx = null) throws JsonError, Error
 		{
 			var typeClass = (ObjectClass)type.class_ref();
 			ParamSpec[] properties =
@@ -290,16 +290,12 @@ namespace LazTools.Text.Json
 				writer.WriteProperty(prop.name);
 				obj.get_property(prop.name, ref propValue);
 				SerializeValue(propValue, prop.value_type, writer, ctx);
-				
 			}
 			writer.EndObject();
 		}
 		
 
-		private static void SerializeValue(Value value,
-						   Type valueType,
-						   JsonWriter writer,
-						   JsonContext? ctx = null) throws JsonError, Error
+		private static void SerializeValue(Value value, Type valueType, JsonWriter writer, JsonContext? ctx = null) throws JsonError, Error
 		{
 			if(valueType.is_a(Type.INT))
 			{
@@ -325,7 +321,7 @@ namespace LazTools.Text.Json
 			{
 				SerializeObject(value.get_object(), valueType, writer, ctx);
 			}
-			else if(valueType.is_a(Type.BOXED))
+			else if(valueType.is_a(Type.BOXED) || (valueType.is_classed() && valueType.is_fundamental()) || valueType.is_enum())
 			{
 				if(ctx == null)
 				{
