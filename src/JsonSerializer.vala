@@ -4,14 +4,13 @@ namespace LazTools.Text.Json
 {
 	public class JsonSerializer
 	{
-		private static Lazy<JsonSerializationContext> _defaultContextCreator =
-			new Lazy<JsonSerializationContext>(CreateDefaultContext);
+		private static Lazy<JsonContext> _defaultContextCreator =
+			new Lazy<JsonContext>(CreateDefaultContext);
 
 		private JsonSerializer()
 		{}
 
-		public static string SerializeToString<T>(T obj,
-							  JsonSerializationContext? ctx = null) throws JsonError, Error
+		public static string SerializeToString<T>(T obj, JsonContext? ctx = null) throws JsonError, Error
 		{
 			MemoryOutputStream output = 
 				new MemoryOutputStream(null, realloc, free);
@@ -25,17 +24,13 @@ namespace LazTools.Text.Json
 			return (string)data;	
 		}
 
-		public static void SerializeToStream<T>(T obj,
-						        OutputStream stream,
-							JsonSerializationContext? ctx = null) throws JsonError, Error
+		public static void SerializeToStream<T>(T obj,OutputStream stream, JsonContext? ctx = null) throws JsonError, Error
 		{
 			JsonWriter writer = new JsonWriter(stream);
 			SerializeToWriter<T>(obj, writer, ctx);
 		}
 
-		public static void SerializeToWriter<T>(T obj,
-						        JsonWriter writer,
-						        JsonSerializationContext? ctx = null) throws JsonError, Error
+		public static void SerializeToWriter<T>(T obj, JsonWriter writer, JsonContext? ctx = null) throws JsonError, Error
 		{
 			Type type = typeof(T);
 			
@@ -98,40 +93,30 @@ namespace LazTools.Text.Json
 			}
 		}
 
-		public static T? DeserializeFromString<T>(string json)
+		public static Value DeserializeFromString(string json, Type t, JsonContext? ctx = null)
 		{
 			MemoryInputStream input =
 				new MemoryInputStream.from_data(json.data);
 
-			T obj = DeserializeFromStream<T>(input);
+			Value val = DeserializeFromStream(input, t, ctx);
 
 			input.close();
 
-			return obj;
+			return val;
 		}
 
-		public static T? DeserializeFromStream<T>(InputStream stream)
+		public static Value DeserializeFromStream(InputStream stream, Type t, JsonContext? ctx = null)
 		{
 			JsonReader reader = new JsonReader(stream);
-			return DeserializeFromReader<T>(reader);
+			return DeserializeFromReader(reader, t, ctx);
 		}
 
-		public static T? DeserializeFromReader<T>(JsonReader reader)
+		public static Value DeserializeFromReader(JsonReader reader, Type t, JsonContext? ctx = null)
 		{
-			Type t = typeof(T);
-			Value val = GetValue(reader, t);
-			if(t == Type.INT)
-			{
-				return (T?)val.get_int();
-			}
-			else if(t.is_a(Type.OBJECT))
-			{
-				return (T?)val.get_object();
-			}
-			else
-			{
-				throw new JsonError.INVALID_JSON("Invalid type");
-			}
+			if(ctx == null)
+				ctx = _defaultContextCreator.Value;
+
+			return GetValue(reader, t, ctx);
 		}
 
 		public static Value DeserializePrimitive(JsonReader reader, Type t)
@@ -169,7 +154,7 @@ namespace LazTools.Text.Json
 			return v;
 		}
 
-		public static Object DeserializeObject(JsonReader reader, Type t)
+		public static Object DeserializeObject(JsonReader reader, Type t, JsonContext ctx)
 		{
 			if(!reader.Proceed() || reader.Token != JsonTokenType.ObjectStart)
 				throw new JsonError.INVALID_JSON("Parsing error");
@@ -185,7 +170,7 @@ namespace LazTools.Text.Json
 				if(prop == null)
 					throw new JsonError.INVALID_JSON("Cannot find property of the object");
 				
-				Value propVal = GetValue(reader, prop.value_type);
+				Value propVal = GetValue(reader, prop.value_type, ctx);
 
 				obj.set_property(propName, propVal);
 			}
@@ -193,19 +178,27 @@ namespace LazTools.Text.Json
 			return obj;
 		}
 
-		public static void* DeserializeStruct(JsonReader reader, Type t)
+		public static Value DeserializeStruct(JsonReader reader, Type t, JsonContext ctx)
 		{
-			TypeQuery query;
-			t.query(out query);
+			IJsonTypeDeserializer deserializer =
+				ctx.LookupDeserializerForType(t);
 
-			void* mem = malloc(query.instance_size);
-			//Add context with deseializers
-			//deserializer.deserialize(mem);
+			Value instance;
 
-			return mem;
+			if(deserializer is IFullTypeDeserializer)
+			{
+				IFullTypeDeserializer ftDes = (IFullTypeDeserializer)deserializer;
+				instance = ftDes.DeserializeIntoValue(t, reader, ctx);
+			}
+			else
+			{
+				throw new JsonError.INVALID_JSON("Unsupported deserializer.");
+			}
+
+			return instance;
 		}
 
-		private static Value GetValue(JsonReader reader, Type t)
+		private static Value GetValue(JsonReader reader, Type t, JsonContext ctx)
 		{
 			if(t.is_fundamental())
 			{	
@@ -220,12 +213,12 @@ namespace LazTools.Text.Json
 			}
 			else if(t.is_a(Type.BOXED))
 			{
-				//Maybe structs will be here
+				return DeserializeStruct(reader, t, ctx);
 			}
 			else if(t.is_object())
 			{
 				Value v = Value(t);
-				Object obj = DeserializeObject(reader, t);
+				Object obj = DeserializeObject(reader, t, ctx);
 				v.set_object(obj);
 				return v;
 			}
@@ -234,12 +227,12 @@ namespace LazTools.Text.Json
 				//Maybe enums will be here and something else.
 			}
 
-			throw new JsonError.INVALID_JSON("Not impletented.");
+			throw new JsonError.INVALID_JSON("Not implemented.");
 		}
 
-		private static JsonSerializationContext CreateDefaultContext()
+		private static JsonContext CreateDefaultContext()
 		{
-			JsonSerializationContext ctx = new JsonSerializationContext();
+			JsonContext ctx = new JsonContext();
 
 			return ctx;
 		}
@@ -247,7 +240,7 @@ namespace LazTools.Text.Json
 		private static void SerializeObject(Object obj,
 						    Type type,
 						    JsonWriter writer,
-						    JsonSerializationContext? ctx = null) throws JsonError, Error
+						    JsonContext? ctx = null) throws JsonError, Error
 		{
 			var typeClass = (ObjectClass)type.class_ref();
 			ParamSpec[] properties =
@@ -269,7 +262,7 @@ namespace LazTools.Text.Json
 		private static void SerializeValue(Value value,
 						   Type valueType,
 						   JsonWriter writer,
-						   JsonSerializationContext? ctx = null) throws JsonError, Error
+						   JsonContext? ctx = null) throws JsonError, Error
 		{
 			if(valueType.is_a(Type.INT))
 			{

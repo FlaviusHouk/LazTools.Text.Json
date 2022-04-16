@@ -6,6 +6,6 @@ namespace LazTools.Text.Json
 	{
 		public abstract bool CanHandleType(Type type);
 
-		public abstract void SerializeValue(Value value, Type valueType, JsonWriter writer, JsonSerializationContext ctx);
+		public abstract void SerializeValue(Value value, Type valueType, JsonWriter writer, JsonContext ctx);
 	}
 }

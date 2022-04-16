@@ -9,6 +9,12 @@ namespace LazTools
 		public int Y;
 	}
 
+	public class Location : Object
+	{
+		public string Name { get; set; }
+		public Point? Coords { get; set; }
+	}
+
 	public class BIO : Object
 	{
 		public string Name { get; set; }
@@ -30,6 +36,42 @@ namespace LazTools
 		public int Id { get; set; }
 		public Point LogicalPosition { get; set; }
 		public int[] Data { get; set; }
+	}
+
+	internal class PointJsonDeserializer : Object, IJsonTypeDeserializer, IFullTypeDeserializer
+	{
+		public bool CanHandleType(Type t)
+		{
+			Type currentType = typeof(Point?);
+			return t.is_a(currentType);
+		}
+
+		public Value DeserializeIntoValue(Type targetType, JsonReader reader, JsonContext ctx)
+		{
+			Value v = Value(targetType);
+			if(!reader.Proceed())
+				throw new JsonError.INVALID_JSON("Expected object start");
+
+			if(reader.Token == JsonTokenType.Null)
+				return v;
+
+			Point p = Point();
+			while(reader.Proceed() && reader.Token != JsonTokenType.ObjectEnd)
+			{
+				string propName = reader.ReadPropertyName();
+
+				if(!reader.Proceed())
+					throw new JsonError.INVALID_JSON("Invalid Json for struct.");
+
+				if(propName == "X")
+					p.X = reader.ReadInt32();
+				else if(propName == "Y")
+					p.Y = reader.ReadInt32();
+			}
+
+			v.set_boxed(&p);
+			return v;
+		}
 	}
 
 	/*internal class PointJsonSerializer : JsonTypeSerializer<Point?>
@@ -84,10 +126,18 @@ namespace LazTools
 			//stdout.printf("%s\n", q.type_name);
 			
 			//string json = "{\"X\":-1,\"Y\":10.34,\"TBool\":true,\"TString\":\"SomeValue\",\"TBio\":{\"Name\":\"Taras\",\"LastName\":\"Shevchenko\"}}";
-			File jsonFile = File.new_for_path("sample.json");
+			File jsonFile = File.new_for_path("sample2.json");
 			FileInputStream fileStream = jsonFile.read();
-			TestClass obj = JsonSerializer.DeserializeFromStream<TestClass>(fileStream);
-			print("%d - %f - %s - %s - %s - %s\n", obj.X, obj.Y, obj.TBool.to_string(), obj.TString, obj.TBio.Name, obj.TBio.LastName);
+
+			JsonContext ctx = new JsonContext();
+			PointJsonDeserializer ds1 = new PointJsonDeserializer();
+			ctx.RegisterDeserializer(ds1);
+
+			Value val = JsonSerializer.DeserializeFromStream(fileStream, typeof(Location), ctx);
+			Location obj = (Location)val.get_object();
+			print("%s: [%d;%d]\n", obj.Name, obj.Coords.X, obj.Coords.Y);
+
+			fileStream.close();
 
 	/*	Type type = typeof (Point);
 	print ("%s\n", type.name ());
@@ -115,11 +165,11 @@ namespace LazTools
 
 			t2.Id = 1;
 			t2.Position = t;
-			t2.LogicalPosition = p;
+			t2.LogicalPosition = p;*/
 
-			JsonSerializationContext ctx = new JsonSerializationContext();
-			PointJsonSerializer s1 = new PointJsonSerializer();
-			ctx.RegisterSerializer(s1);
+			/*JsonSerializationContext ctx = new JsonSerializationContext();
+			PointJsonDeserializer ds1 = new PointJsonDeserializer();
+			ctx.RegisterDeserializer(ds1);
 
 			string json = JsonSerializer.SerializeToString<TestClass2>(t2, ctx);
 			stdout.printf("%s\n", json);*/
