@@ -198,12 +198,49 @@ namespace LazTools.Text.Json
 			return instance;
 		}
 
+		private static Value DeserializeClassedFundamental(JsonReader reader, Type t, JsonContext ctx)
+		{
+			IJsonTypeDeserializer deserializer =
+				ctx.LookupDeserializerForType(t);
+
+			Value instance;
+			if(deserializer is IPartialTypeDeserializer)
+			{
+				if(!reader.Proceed() || reader.Token != JsonTokenType.ObjectStart)
+					throw new JsonError.INVALID_JSON("Non object class registered for partial deserialization.");
+
+				IPartialTypeDeserializer ptDes = (IPartialTypeDeserializer)deserializer;
+				instance = ptDes.CreateInstance();
+
+				while(reader.Proceed() && reader.Token != JsonTokenType.ObjectEnd)
+				{
+					string propName = reader.ReadPropertyName();
+					Type propType = ptDes.GetPropertyType(propName);
+					Value propVal = GetValue(reader, propType, ctx);
+
+					ptDes.SetProperty(instance, propName, propVal);
+				}
+			}
+			else if(deserializer is IFullTypeDeserializer)
+			{
+				IFullTypeDeserializer ftDes = (IFullTypeDeserializer)deserializer;
+				instance = ftDes.DeserializeIntoValue(t, reader, ctx);
+			}
+			else
+			{
+				throw new JsonError.INVALID_JSON("Unsupported deserializer.");
+			}
+
+			return instance;
+		}
+
 		private static Value GetValue(JsonReader reader, Type t, JsonContext ctx)
 		{
 			if(t.is_fundamental())
 			{	
 				if(t.is_classed())
 				{
+					return DeserializeClassedFundamental(reader, t, ctx);
 				}
 				else
 				{

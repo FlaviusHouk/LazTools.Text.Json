@@ -3,7 +3,7 @@ using LazTools.Text.Json;
 
 namespace LazTools
 {
-	public struct Point
+	public class Point
 	{
 		public int X;
 		public int Y;
@@ -38,7 +38,7 @@ namespace LazTools
 		public int[] Data { get; set; }
 	}
 
-	internal class PointJsonDeserializer : Object, IJsonTypeDeserializer, IFullTypeDeserializer
+	/*internal class PointStructJsonDeserializer : Object, IJsonTypeDeserializer, IFullTypeDeserializer
 	{
 		public bool CanHandleType(Type t)
 		{
@@ -71,6 +71,40 @@ namespace LazTools
 
 			v.set_boxed(&p);
 			return v;
+		}
+	}*/
+
+	internal class PointClassDeserializer : Object, IJsonTypeDeserializer, IPartialTypeDeserializer
+	{
+		public bool CanHandleType(Type t)
+		{
+			Type currentType = typeof(Point?);
+			return t.is_a(currentType);
+		}
+
+		public Value CreateInstance()
+		{
+			Value v = Value(typeof(Point));
+			Point p = new Point();
+			v.set_instance(p);
+			return v;
+		}
+
+		public Type GetPropertyType(string propertyName)
+		{
+			return typeof(int);
+		}
+
+		public void SetProperty(Value instance, string propertyName, Value value)
+		{
+			Point? p = (Point?)instance.peek_pointer();
+			if(p == null)
+				return;
+
+			if(propertyName == "X")
+				p.X = value.get_int();
+			else if(propertyName == "Y")
+				p.Y = value.get_int();
 		}
 	}
 
@@ -124,22 +158,7 @@ namespace LazTools
 			//TypeQuery q;
 			//type.query(out q);
 			//stdout.printf("%s\n", q.type_name);
-			
-			//string json = "{\"X\":-1,\"Y\":10.34,\"TBool\":true,\"TString\":\"SomeValue\",\"TBio\":{\"Name\":\"Taras\",\"LastName\":\"Shevchenko\"}}";
-			File jsonFile = File.new_for_path("sample2.json");
-			FileInputStream fileStream = jsonFile.read();
-
-			JsonContext ctx = new JsonContext();
-			PointJsonDeserializer ds1 = new PointJsonDeserializer();
-			ctx.RegisterDeserializer(ds1);
-
-			Value val = JsonSerializer.DeserializeFromStream(fileStream, typeof(Location), ctx);
-			Location obj = (Location)val.get_object();
-			print("%s: [%d;%d]\n", obj.Name, obj.Coords.X, obj.Coords.Y);
-
-			fileStream.close();
-
-	/*	Type type = typeof (Point);
+	Type type = typeof (Point);
 	print ("%s\n", type.name ());
 	print (" is-obj: %s\n", type.is_object ().to_string ());
 	print (" is-abstr: %s\n", type.is_abstract ().to_string ());
@@ -150,7 +169,23 @@ namespace LazTools
 	print (" is-inst: %s\n", type.is_instantiatable ().to_string ());
 	print (" is-iface: %s\n", type.is_interface ().to_string ());
 	print (" is-enum: %s\n", type.is_enum ().to_string ());
-	print (" is-flags: %s\n", type.is_object ().to_string ());*/
+	print (" is-flags: %s\n", type.is_object ().to_string ());
+
+
+
+			//string json = "{\"X\":-1,\"Y\":10.34,\"TBool\":true,\"TString\":\"SomeValue\",\"TBio\":{\"Name\":\"Taras\",\"LastName\":\"Shevchenko\"}}";
+			File jsonFile = File.new_for_path("sample2.json");
+			FileInputStream fileStream = jsonFile.read();
+
+			JsonContext ctx = new JsonContext();
+			PointClassDeserializer ds1 = new PointClassDeserializer();
+			ctx.RegisterDeserializer(ds1);
+
+			Value val = JsonSerializer.DeserializeFromStream(fileStream, typeof(Location), ctx);
+			Location obj = (Location)val.get_object();
+			print("%s: [%d;%d]\n", obj.Name, obj.Coords.X, obj.Coords.Y);
+
+			fileStream.close();
 
 			/*TestClass2 t2 = new TestClass2();
 			Point p = Point()
@@ -168,7 +203,7 @@ namespace LazTools
 			t2.LogicalPosition = p;*/
 
 			/*JsonSerializationContext ctx = new JsonSerializationContext();
-			PointJsonDeserializer ds1 = new PointJsonDeserializer();
+			PointClassJsonDeserializer ds1 = new PointClassJsonDeserializer();
 			ctx.RegisterDeserializer(ds1);
 
 			string json = JsonSerializer.SerializeToString<TestClass2>(t2, ctx);
