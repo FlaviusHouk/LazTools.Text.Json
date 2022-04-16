@@ -90,7 +90,7 @@ namespace LazTools.Text.Json
 			else if (Token != JsonTokenType.String)
 				throw new JsonError.INVALID_VALUE("Cannot read string value");
 
-			return _currentLine.substring(_position, _bufferLength);
+			return _currentLine.substring(_position, _bufferLength - 1);
 		}
 
 		public bool? ReadBoolean()
@@ -371,7 +371,9 @@ namespace LazTools.Text.Json
 					if(c == '\"')
 					{
 						currentState.InternalState = Content;
-						_bufferLength++;
+
+						if(!GoNext())
+							throw new JsonError.INVALID_JSON("Unexpected end");
 					}
 					else
 					{
@@ -385,7 +387,7 @@ namespace LazTools.Text.Json
 						currentState.InternalState = -1;
 					}
 
-					_bufferLength++;
+					IncreaseBuffer();
 				}
 			}
 		}

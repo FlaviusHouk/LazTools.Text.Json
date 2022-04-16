@@ -84,7 +84,7 @@ namespace LazTools
 		}
 	}*/
 
-	/*internal class PointClassDeserializer : Object, IJsonTypeDeserializer, IPartialTypeDeserializer
+	internal class PointClassDeserializer : Object, IJsonTypeDeserializer, IPartialTypeDeserializer
 	{
 		public bool CanHandleType(Type t)
 		{
@@ -116,7 +116,7 @@ namespace LazTools
 			else if(propertyName == "Y")
 				p.Y = value.get_int();
 		}
-	}*/
+	}
 
 	internal class PointJsonSerializer : JsonTypeSerializer<Point?>
 	{
@@ -182,20 +182,24 @@ namespace LazTools
 	print (" is-flags: %s\n", type.is_object ().to_string ());
 
 
-			/*File jsonFile = File.new_for_path("sample2.json");
+			File jsonFile = File.new_for_path("sample2.json");
 			FileInputStream fileStream = jsonFile.read();
 
 			JsonContext ctx = new JsonContext();
+			ctx.HandleEnumAsString = true;
 			PointClassDeserializer ds1 = new PointClassDeserializer();
 			ctx.RegisterDeserializer(ds1);
 
+			EnumDeserializer ds2 = new EnumDeserializer();
+			ctx.RegisterDeserializer(ds2);
+
 			Value val = JsonSerializer.DeserializeFromStream(fileStream, typeof(Location), ctx);
 			Location obj = (Location)val.get_object();
-			print("%s: [%d;%d]\n", obj.Name, obj.Coords.X, obj.Coords.Y);
+			print("%s: [%d;%d]. %s\n", obj.Name, obj.Coords.X, obj.Coords.Y, obj.Part.to_string());
 
-			fileStream.close();*/
+			fileStream.close();
 
-			Location loc = new Location();
+			/*Location loc = new Location();
 			loc.Name = "Mykolaiv";
 			loc.Part = PartOfTheCountryEnum.South;
 			loc.Coords = new Point();
@@ -210,7 +214,7 @@ namespace LazTools
 			ctx.RegisterSerializer(s2);
 
 			string json = JsonSerializer.SerializeToString<Location>(loc, ctx);
-			stdout.printf("%s\n", json);
+			stdout.printf("%s\n", json);*/
 		}
 	}
 }

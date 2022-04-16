@@ -259,9 +259,20 @@ namespace LazTools.Text.Json
 				v.set_object(obj);
 				return v;
 			}
-			else
+			else if(t.is_enum())
 			{
-				//Maybe enums will be here and something else.
+				IJsonTypeDeserializer deserializer =
+					ctx.LookupDeserializerForType(t);
+
+				if(deserializer is IFullTypeDeserializer)
+				{
+					IFullTypeDeserializer ftDes = (IFullTypeDeserializer)deserializer;
+					return ftDes.DeserializeIntoValue(t, reader, ctx);
+				}
+				else
+				{
+					throw new JsonError.INVALID_JSON("Unsupported deserializer.");
+				}
 			}
 
 			throw new JsonError.INVALID_JSON("Not implemented.");
@@ -273,6 +284,9 @@ namespace LazTools.Text.Json
 
 			EnumSerializer enumSerializer = new EnumSerializer();
 			ctx.RegisterSerializer(enumSerializer);
+
+			EnumDeserializer enumDeserializer = new EnumDeserializer();
+			ctx.RegisterDeserializer(enumDeserializer);
 
 			return ctx;
 		}
