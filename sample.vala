@@ -9,6 +9,11 @@ namespace LazTools
 		public int Y;
 	}
 
+	public class TestArray
+	{
+		public int[] Prop { get; set; }
+	}
+
 	public enum PartOfTheCountryEnum
 	{
 		Center,
@@ -23,6 +28,7 @@ namespace LazTools
 		public string Name { get; set; }
 		public PartOfTheCountryEnum Part { get; set; }
 		public Point? Coords { get; set; }
+		public Array<string> Areas { get; set; }
 	}
 
 	public class BIO : Object
@@ -38,14 +44,6 @@ namespace LazTools
 		public bool TBool { get; set; }
 		public string TString { get; set; }
 		public BIO TBio { get; set; }
-	}
-
-	public class TestClass2 : Object
-	{
-		public TestClass Position { get; set; }
-		public int Id { get; set; }
-		public Point LogicalPosition { get; set; }
-		public int[] Data { get; set; }
 	}
 
 	/*internal class PointStructJsonDeserializer : Object, IJsonTypeDeserializer, IFullTypeDeserializer
@@ -142,6 +140,11 @@ namespace LazTools
 		}
 	}
 
+	[Compact]
+	[CCode ( type_id="G_TYPE_ARRAY" )]
+	internal abstract class ArrayTypePlaceholder
+	{}
+
 	public class Sample : Object
 	{
 		public static void DoAction<T>(T obj)
@@ -168,7 +171,7 @@ namespace LazTools
 			//TypeQuery q;
 			//type.query(out q);
 			//stdout.printf("%s\n", q.type_name);
-	Type type = typeof (Point);
+	Type type = typeof (Array<int>);
 	print ("%s\n", type.name ());
 	print (" is-obj: %s\n", type.is_object ().to_string ());
 	print (" is-abstr: %s\n", type.is_abstract ().to_string ());
@@ -182,7 +185,7 @@ namespace LazTools
 	print (" is-flags: %s\n", type.is_object ().to_string ());
 
 
-			File jsonFile = File.new_for_path("sample2.json");
+			/*File jsonFile = File.new_for_path("sample2.json");
 			FileInputStream fileStream = jsonFile.read();
 
 			JsonContext ctx = new JsonContext();
@@ -197,24 +200,32 @@ namespace LazTools
 			Location obj = (Location)val.get_object();
 			print("%s: [%d;%d]. %s\n", obj.Name, obj.Coords.X, obj.Coords.Y, obj.Part.to_string());
 
-			fileStream.close();
+			fileStream.close();*/
 
-			/*Location loc = new Location();
+			Location loc = new Location();
 			loc.Name = "Mykolaiv";
 			loc.Part = PartOfTheCountryEnum.South;
 			loc.Coords = new Point();
 			loc.Coords.X = -4;
 			loc.Coords.Y = -30;
 
+			loc.Areas = new Array<string>();
+			loc.Areas.append_val("Mykolaiv");
+			loc.Areas.append_val("Bashtanka");
+			loc.Areas.append_val("Voznesensk");
+			loc.Areas.append_val("Pervomaysk");
+
 			JsonContext ctx = new JsonContext();
 			ctx.HandleEnumAsString = true;
 			PointJsonSerializer s1 = new PointJsonSerializer();
 			EnumSerializer s2 = new EnumSerializer();
+			ArraySerializer<string> s3 = new ArraySerializer<string>();
 			ctx.RegisterSerializer(s1);
 			ctx.RegisterSerializer(s2);
+			ctx.RegisterSerializer(s3);
 
 			string json = JsonSerializer.SerializeToString<Location>(loc, ctx);
-			stdout.printf("%s\n", json);*/
+			stdout.printf("%s\n", json);
 		}
 	}
 }
